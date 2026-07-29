@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disable Smart App Control + SmartScreen (Windows 11)</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #1a1d24;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --border: #2a2f3a;
+    --code-bg: #11141a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem 1rem;
+  }
+
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    margin: 2rem 0 1rem;
+    color: var(--accent);
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  p, li {
+    margin-bottom: 0.75rem;
+  }
+
+  ul, ol {
+    padding-left: 1.4rem;
+    margin-bottom: 1.25rem;
+  }
+
+  li { margin-bottom: 0.4rem; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin: 1.25rem 0;
+  }
+
+  .warning {
+    border-left: 4px solid var(--warning);
+  }
+
+  .success {
+    border-left: 4px solid var(--success);
+  }
+
+  .danger {
+    border-left: 4px solid var(--danger);
+  }
+
+  code, .code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+  }
+
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+  }
+
+  .path {
+    word-break: break-all;
+  }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  a { color: var(--accent); }
+  a:hover { color: var(--accent-hover); }
+
+  @media print {
+    body { background: white; color: black; }
+    .card { border: 1px solid #ccc; background: #f9f9f9; }
+    .step-num { background: #333; }
+    pre { border: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Disable Smart App Control + SmartScreen</h1>
+      <p class="subtitle">Windows 11 · Local account · Batch / Rust apps</p>
+    </header>
+
+    <div class="card warning">
+      <strong>Why this is needed</strong><br>
+      Smart App Control (SAC) locks the normal SmartScreen setting “Check apps and files”.  
+      When SAC is active, Windows blocks unsigned / unrecognized batch files and often pushes you toward the Microsoft Store.  
+      This is especially annoying when you launch Rust apps (or any tools) via <code>.bat</code> / <code>.cmd</code> files all day.
+    </div>
+
+    <h2>1. Force Smart App Control Off (Registry)</h2>
+    <p>Use this when the UI toggle is greyed out or refuses to switch to Off.</p>
+
+    <ol>
+      <li>
+        <span class="step-num">1</span>
+        Optional but recommended: create a restore point  
+        (search “Create a restore point” → Create).
+      </li>
+      <li>
+        <span class="step-num">2</span>
+        Press <code>Win + R</code>, type <code>regedit</code>, press Enter.  
+        Click <strong>Yes</strong> on the UAC prompt.
+      </li>
+      <li>
+        <span class="step-num">3</span>
+        Navigate to this exact path:<br>
+        <pre class="path">HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Policy</pre>
+      </li>
+      <li>
+        <span class="step-num">4</span>
+        In the right pane look for the value <code>VerifiedAndReputablePolicyState</code>.
+        <ul>
+          <li>If it exists → double-click it.</li>
+          <li>If it does <strong>not</strong> exist → right-click empty space → New → DWORD (32-bit) Value → name it exactly <code>VerifiedAndReputablePolicyState</code>.</li>
+        </ul>
+      </li>
+      <li>
+        <span class="step-num">5</span>
+        Set the value data to <strong>0</strong> and click OK.<br>
+        <div class="card" style="margin-top:0.75rem">
+          <code>0</code> = Off &nbsp;&nbsp;|&nbsp;&nbsp;
+          <code>1</code> = On &nbsp;&nbsp;|&nbsp;&nbsp;
+          <code>2</code> = Evaluation
+        </div>
+      </li>
+      <li>
+        <span class="step-num">6</span>
+        Close Registry Editor.  
+        A reboot is usually <em>not</em> required — the change often takes effect immediately.  
+        If the SmartScreen options stay locked, reboot once.
+      </li>
+    </ol>
+
+    <div class="card success">
+      After this, open <strong>Windows Security → App &amp; browser control → Smart App Control settings</strong>.  
+      It should now show <strong>Off</strong> (or at least no longer lock the other settings).
+    </div>
+
+    <h2>2. Turn off “Check apps and files”</h2>
+    <ol>
+      <li>Open <strong>Windows Security</strong>.</li>
+      <li>Go to <strong>App &amp; browser control</strong>.</li>
+      <li>Click <strong>Reputation-based protection settings</strong>.</li>
+      <li>Turn <strong>Off</strong> “Check apps and files”.</li>
+      <li>(Optional) Also turn off “Potentially unwanted app blocking”.</li>
+    </ol>
+
+    <h2>3. Unblock your batch files</h2>
+    <p>Even after the above, individual files that were previously blocked may still carry the “Mark of the Web”.</p>
+
+    <h3>One file at a time</h3>
+    <ul>
+      <li>Right-click the <code>.bat</code> / <code>.cmd</code> → <strong>Properties</strong>.</li>
+      <li>At the bottom of the General tab, check <strong>Unblock</strong> → Apply → OK.</li>
+    </ul>
+
+    <h3>Whole folder (PowerShell)</h3>
+    <p>Open PowerShell in the folder that contains your batch files and run:</p>
+    <pre><code>Get-ChildItem -Path . -Recurse -Include *.bat,*.cmd,*.ps1 | Unblock-File</code></pre>
+
+    <h2>4. Extra setting that helps</h2>
+    <p>Stop Windows from pushing the Store for non-Store apps:</p>
+    <ul>
+      <li>Settings → <strong>Apps</strong> → <strong>Advanced app settings</strong></li>
+      <li>(or search for “Choose where to get apps”)</li>
+      <li>Set it to <strong>Anywhere</strong></li>
+    </ul>
+
+    <h2>Quick reference – Registry one-liner</h2>
+    <p>You can also run this in an elevated Command Prompt or PowerShell:</p>
+    <pre><code>reg add "HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy" /v VerifiedAndReputablePolicyState /t REG_DWORD /d 0 /f</code></pre>
+
+    <div class="card warning">
+      <strong>Note about Windows updates</strong><br>
+      Major cumulative updates sometimes re-enable Smart App Control or SmartScreen.  
+      If batch files suddenly start getting blocked again, re-check the registry value and the “Check apps and files” toggle.  
+      Your O&amp;O ShutUp10 / Win11Debloat settings can also help keep related telemetry and suggestions down, but they do not fully control SAC.
+    </div>
+
+    <footer>
+      Saved for local reference · Works on Windows 11 (24H2 / 25H2 era) · Local account friendly<br>
+      Primary method: registry force-off of Smart App Control so the normal SmartScreen toggles become usable again.
+    </footer>
+  </div>
+</body>
+</html>
