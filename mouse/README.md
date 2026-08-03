@@ -10,6 +10,7 @@ Supports long recordings (30+ minutes) with accurate timing playback.
 - ▶ **Start Record** – begins capturing all mouse activity globally
 - ⏹ **Stop Record** – ends the current recording
 - ⏯ **Play Back** – faithfully replays the recorded sequence with original timing
+- Global playback controls: **F1** pauses, **F2** resumes, and **Space** stops
 - Live event counter and duration display while recording
 - Memory-efficient storage of events (suitable for half-hour+ macros)
 - Clean, native GUI built with `egui` / `eframe`

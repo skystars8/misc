@@ -59,6 +59,7 @@ struct MacroApp {
     is_recording: Arc<AtomicBool>,
     is_playing: Arc<AtomicBool>,
     is_paused: Arc<AtomicBool>,
+    playback_stop_requested: Arc<AtomicBool>,
     recorded_events: Arc<Mutex<Vec<RecordedEvent>>>,
     record_start: Arc<Mutex<Option<Instant>>>,
     status: String,
@@ -71,6 +72,7 @@ impl MacroApp {
         let is_recording = Arc::new(AtomicBool::new(false));
         let is_playing = Arc::new(AtomicBool::new(false));
         let is_paused = Arc::new(AtomicBool::new(false));
+        let playback_stop_requested = Arc::new(AtomicBool::new(false));
         let recorded_events = Arc::new(Mutex::new(Vec::new()));
         let record_start = Arc::new(Mutex::new(None));
 
@@ -79,6 +81,7 @@ impl MacroApp {
             let is_recording = Arc::clone(&is_recording);
             let is_playing = Arc::clone(&is_playing);
             let is_paused = Arc::clone(&is_paused);
+            let playback_stop_requested = Arc::clone(&playback_stop_requested);
             let recorded_events = Arc::clone(&recorded_events);
             let record_start = Arc::clone(&record_start);
 
@@ -95,6 +98,12 @@ impl MacroApp {
                             Key::F2 => {
                                 if is_playing.load(Ordering::SeqCst) {
                                     is_paused.store(false, Ordering::SeqCst);
+                                }
+                            }
+                            Key::Space => {
+                                if is_playing.swap(false, Ordering::SeqCst) {
+                                    is_paused.store(false, Ordering::SeqCst);
+                                    playback_stop_requested.store(true, Ordering::SeqCst);
                                 }
                             }
                             _ => {}
@@ -152,6 +161,7 @@ impl MacroApp {
             is_recording,
             is_playing,
             is_paused,
+            playback_stop_requested,
             recorded_events,
             record_start,
             status: "Ready. Click ▶ Start Record to begin.".to_string(),
@@ -218,7 +228,8 @@ impl MacroApp {
 
         self.is_playing.store(true, Ordering::SeqCst);
         self.is_paused.store(false, Ordering::SeqCst);
-        self.status = "▶️ Playing back... (F1 pause / F2 resume)".to_string();
+        self.playback_stop_requested.store(false, Ordering::SeqCst);
+        self.status = "▶️ Playing back... (F1 pause / F2 resume / Space stop)".to_string();
 
         let is_playing = Arc::clone(&self.is_playing);
         let is_paused = Arc::clone(&self.is_paused);
@@ -274,19 +285,28 @@ impl MacroApp {
 impl eframe::App for MacroApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Detect when playback finishes
-        if !self.is_playing.load(Ordering::SeqCst) && self.status.starts_with("▶️") {
-            self.status = format!(
-                "✅ Playback finished. {} events • {:.1}s",
-                self.event_count, self.duration_secs
-            );
+        if !self.is_playing.load(Ordering::SeqCst)
+            && (self.status.starts_with("▶️") || self.status.starts_with("⏸"))
+        {
+            if self.playback_stop_requested.swap(false, Ordering::SeqCst) {
+                self.status = format!(
+                    "⏹ Playback stopped. {} events • {:.1}s",
+                    self.event_count, self.duration_secs
+                );
+            } else {
+                self.status = format!(
+                    "✅ Playback finished. {} events • {:.1}s",
+                    self.event_count, self.duration_secs
+                );
+            }
         }
 
         // Live status while playing (including pause)
         if self.is_playing.load(Ordering::SeqCst) {
             if self.is_paused.load(Ordering::SeqCst) {
-                self.status = "⏸ Paused  (press F2 to resume)".to_string();
+                self.status = "⏸ Paused  (F2 resume / Space stop)".to_string();
             } else if !self.status.starts_with("⏸") {
-                self.status = "▶️ Playing back... (F1 pause / F2 resume)".to_string();
+                self.status = "▶️ Playing back... (F1 pause / F2 resume / Space stop)".to_string();
             }
             ctx.request_repaint_after(Duration::from_millis(150));
         }
@@ -328,8 +348,7 @@ impl eframe::App for MacroApp {
                     if ui
                         .add_enabled(
                             can_record,
-                            egui::Button::new("▶  Start Record")
-                                .min_size(egui::vec2(130.0, 42.0)),
+                            egui::Button::new("▶  Start Record").min_size(egui::vec2(130.0, 42.0)),
                         )
                         .clicked()
                     {
@@ -342,8 +361,7 @@ impl eframe::App for MacroApp {
                     if ui
                         .add_enabled(
                             can_stop,
-                            egui::Button::new("⏹  Stop Record")
-                                .min_size(egui::vec2(130.0, 42.0)),
+                            egui::Button::new("⏹  Stop Record").min_size(egui::vec2(130.0, 42.0)),
                         )
                         .clicked()
                     {
@@ -363,8 +381,7 @@ impl eframe::App for MacroApp {
                     if ui
                         .add_enabled(
                             can_play,
-                            egui::Button::new("⏯  Play Back")
-                                .min_size(egui::vec2(160.0, 42.0)),
+                            egui::Button::new("⏯  Play Back").min_size(egui::vec2(160.0, 42.0)),
                         )
                         .clicked()
                     {
@@ -382,7 +399,7 @@ impl eframe::App for MacroApp {
                 ui.add_space(10.0);
                 ui.small("• Records mouse movement, left/right/middle clicks and wheel");
                 ui.small("• Supports recordings of 30+ minutes (memory efficient)");
-                ui.small("• Hotkeys: F1 = Pause playback • F2 = Resume playback");
+                ui.small("• Hotkeys: F1 = Pause • F2 = Resume • Space = Stop playback");
                 ui.small("• Tip: Run as Administrator if playback fails in some apps");
                 ui.small("• Built with Rust + egui + rdev");
             });
